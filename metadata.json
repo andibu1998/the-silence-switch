@@ -1,0 +1,8 @@
+{
+  "name": "The Silence Switch",
+  "description": "A digital treatment portal for Tinnitus patients. A digital remote control providing focused, distraction-free relief.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
