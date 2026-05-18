@@ -13,16 +13,13 @@ export default function App() {
     // Check for token in URL using URLSearchParams
     const params = new URLSearchParams(window.location.search);
     const tokenFromUrl = params.get('token');
-    
-    // Check if we are on the /access route
-    const isAccessRoute = window.location.pathname === '/access';
 
-    if (isAccessRoute && tokenFromUrl) {
+    if (tokenFromUrl) {
       // Save token to localStorage
       localStorage.setItem('silence_switch_token', tokenFromUrl);
       
       // Clean up the URL by replacing history state to root, hiding token
-      window.history.replaceState({}, document.title, '/');
+      window.history.replaceState({}, document.title, window.location.pathname);
       setIsAuthenticated(true);
     } else {
       // Check for existing token

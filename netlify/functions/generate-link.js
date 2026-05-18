@@ -22,6 +22,7 @@ exports.handler = async (event, context) => {
 
     const jwtSecret = process.env.JWT_SECRET;
     const ghlWebhookUrl = process.env.GHL_WEBHOOK_URL;
+    const appUrl = process.env.APP_URL || 'https://thesilenceinstitute.com';
 
     if (!jwtSecret || !ghlWebhookUrl) {
       console.error('Server Configuration Error: Missing Environment Variables');
@@ -35,7 +36,7 @@ exports.handler = async (event, context) => {
     const token = jwt.sign({ email }, jwtSecret);
 
     // Construct the Magic Link
-    const magicLink = `https://thesilenceinstitute.com/access?token=${token}`;
+    const magicLink = `${appUrl}/?token=${token}`;
 
     // Send the generated link back to the provided GoHighLevel Inbound Webhook
     const ghlResponse = await fetch(ghlWebhookUrl, {
