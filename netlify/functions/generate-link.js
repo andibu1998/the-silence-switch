@@ -33,7 +33,7 @@ exports.handler = async (event, context) => {
     }
 
     // Generate JWT with no expiration date (infinitely valid)
-    const token = jwt.sign({ email }, jwtSecret);
+    const token = jwt.sign({ email, contact_id }, jwtSecret);
 
     // Construct the Magic Link
     const magicLink = `${appUrl}/?token=${token}`;

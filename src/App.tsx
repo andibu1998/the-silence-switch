@@ -2,15 +2,34 @@ import { useState, ReactNode, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, ArrowLeft, Headphones, Square, Save, CheckCircle, Download } from 'lucide-react';
 
+// --- JWT Utility ---
+
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.error('Failed to parse JWT', e);
+    return null;
+  }
+}
+
 // --- Web Audio API Generators ---
 
 let sineAudioCtx: AudioContext | null = null;
 let sineOscillator: OscillatorNode | null = null;
 let sineGain: GainNode | null = null;
 
-function playSineWave(freq: number) {
+async function playSineWave(freq: number) {
   if (!sineAudioCtx) sineAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-  if (sineAudioCtx.state === 'suspended') sineAudioCtx.resume();
+  if (sineAudioCtx.state === 'suspended') {
+    await sineAudioCtx.resume();
+  }
   
   if (sineOscillator) stopSineWave();
   
@@ -49,9 +68,11 @@ let brownBufferSource: AudioBufferSourceNode | null = null;
 let brownNotchFilter: BiquadFilterNode | null = null;
 let brownGain: GainNode | null = null;
 
-function playBrownNoise(notchFreq: number) {
+async function playBrownNoise(notchFreq: number) {
   if (!brownAudioCtx) brownAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-  if (brownAudioCtx.state === 'suspended') brownAudioCtx.resume();
+  if (brownAudioCtx.state === 'suspended') {
+    await brownAudioCtx.resume();
+  }
   
   if (brownBufferSource) stopBrownNoise();
   
@@ -122,6 +143,11 @@ export default function App() {
     if (tokenFromUrl) {
       // Save token to localStorage
       localStorage.setItem('silence_switch_token', tokenFromUrl);
+      
+      const payload = parseJwt(tokenFromUrl);
+      if (payload && payload.contact_id) {
+        localStorage.setItem('silence_switch_contact_id', payload.contact_id);
+      }
       
       // Clean up the URL by replacing history state to root, hiding token
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -249,13 +275,13 @@ function DetailView({ view, onBack }: { view: Exclude<View, 'home'>; onBack: () 
     return () => { stopBrownNoise(); };
   }, []);
 
-  const handleBrownPlayPause = () => {
+  const handleBrownPlayPause = async () => {
     if (isPlayingBrown) {
       stopBrownNoise();
       setIsPlayingBrown(false);
     } else {
       const storedFreq = Number(localStorage.getItem('tinnitus_frequency')) || 4000;
-      playBrownNoise(storedFreq);
+      await playBrownNoise(storedFreq);
       setIsPlayingBrown(true);
     }
   };
@@ -409,12 +435,12 @@ function OnboardingView({ onComplete }: { onComplete: () => void }) {
     }
   }, [frequency, isPlayingSine]);
   
-  const handlePlayPause = () => {
+  const handlePlayPause = async () => {
     if (isPlayingSine) {
       stopSineWave();
       setIsPlayingSine(false);
     } else {
-      playSineWave(frequency);
+      await playSineWave(frequency);
       setIsPlayingSine(true);
     }
   };
@@ -426,7 +452,7 @@ function OnboardingView({ onComplete }: { onComplete: () => void }) {
     // POST Request simulated
     const webhookUrl = import.meta.env.VITE_GHL_WEBHOOK_FREQUENCY_URL;
     if (webhookUrl) {
-      const contact_id = 'placeholder_id'; // In a real app we would extract this from JWT
+      const contact_id = localStorage.getItem('silence_switch_contact_id') || 'unknown'; // In a real app we would extract this from JWT
       try {
         await fetch(webhookUrl, {
           method: 'POST',
