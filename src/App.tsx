@@ -1,4 +1,4 @@
-import { useState, ReactNode, useEffect } from 'react';
+import { useState, ReactNode, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, ArrowLeft, Headphones, Square, Save, CheckCircle, Download } from 'lucide-react';
 
@@ -125,6 +125,89 @@ function stopBrownNoise() {
   }
 }
 
+// --- Native Audio Player Component ---
+
+function NativeAudioPlayer({ src, title, album, isSpike, loop }: { src: string, title: string, album: string, isSpike?: boolean, loop?: boolean }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio && 'mediaSession' in navigator) {
+      // Setup Media Session API so it continues to play when the screen is locked
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: title,
+        artist: 'The Silence Switch',
+        album: album,
+        artwork: [
+          // Providing a generic fallback artwork from the assets list
+          { src: 'https://assets.cdn.filesafe.space/WBcpbvnlBFrQ9DnHZPfH/media/6a0b3756c474827cc404f487.webp', sizes: '512x512', type: 'image/webp' }
+        ]
+      });
+
+      // Hook up media session controls to the audio element
+      navigator.mediaSession.setActionHandler('play', () => {
+        audio.play().then(() => setIsPlaying(true)).catch(console.error);
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        audio.pause();
+        setIsPlaying(false);
+      });
+    }
+
+    return () => {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', null);
+        navigator.mediaSession.setActionHandler('pause', null);
+      }
+    };
+  }, [title, album]);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+    }
+  };
+
+  return (
+    <>
+      <audio 
+        ref={audioRef} 
+        src={src} 
+        onPlay={() => setIsPlaying(true)} 
+        onPause={() => setIsPlaying(false)} 
+        onEnded={() => setIsPlaying(false)} 
+        loop={loop}
+      />
+      
+      {isSpike ? (
+        <button onClick={togglePlay} className="w-full aspect-square md:aspect-auto md:h-80 bg-red-700 rounded-[40px] border-4 border-red-500 flex flex-col items-center justify-center active:scale-[0.98] transition-transform shadow-2xl relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-b from-red-600 to-red-800" />
+          {isPlaying ? (
+            <Square className="w-32 h-32 text-white relative z-10 mb-4" fill="currentColor" />
+          ) : (
+            <Play className="w-32 h-32 text-white relative z-10 mb-4 ml-4" fill="currentColor" />
+          )}
+          <span className="text-white relative z-10 font-extrabold tracking-widest uppercase text-xl">
+             {isPlaying ? 'STOP AUDIO' : 'PLAY NOW'}
+          </span>
+        </button>
+      ) : (
+        <button onClick={togglePlay} className="w-full bg-indigo-600 text-white font-extrabold text-2xl py-6 rounded-[32px] active:scale-[0.98] transition-transform shadow-[0_0_40px_rgba(79,70,229,0.2)] uppercase tracking-widest flex items-center justify-center gap-4">
+          {isPlaying ? (
+            <><Square className="w-8 h-8" fill="currentColor" /> STOP AUDIO</>
+          ) : (
+            <><Play className="w-8 h-8" fill="currentColor" /> START AUDIO</>
+          )}
+        </button>
+      )}
+    </>
+  );
+}
+
 // --- React Application ---
 
 type View = 'home' | 'daily' | 'spikes' | 'night';
@@ -203,7 +286,7 @@ export default function App() {
                 <h1 className="text-xl sm:text-2xl font-extrabold tracking-tighter text-zinc-900 uppercase">The Silence Switch</h1>
                 <div className="flex items-center gap-2 mt-1">
                   <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500 animate-pulse"></div>
-                  <span className="text-[10px] sm:text-xs font-bold text-zinc-500 tracking-widest uppercase">Portal Active</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-zinc-500 tracking-widest uppercase">PORTAL ACTIVE</span>
                 </div>
               </div>
             </div>
@@ -212,25 +295,25 @@ export default function App() {
               <Tile
                 onClick={() => setCurrentView('daily')}
                 className="bg-emerald-50 border-emerald-100 hover:border-emerald-500 text-emerald-900"
-                subtitle={<span className="text-emerald-600 text-sm sm:text-lg font-extrabold uppercase tracking-widest mb-1 sm:mb-2 text-center">Protocol</span>}
+                subtitle={<span className="text-emerald-600 text-sm sm:text-lg font-extrabold uppercase tracking-widest mb-1 sm:mb-2 text-center">PROTOCOL</span>}
                 title="DAILY ROUTINE"
-                description={<span className="text-emerald-800 opacity-80">Rewire your nervous system.</span>}
+                description={<span className="text-emerald-800 opacity-80">Your 15-minute reset. Do this every morning.</span>}
                 centerText={true}
               />
               <Tile
                 onClick={() => setCurrentView('night')}
                 className="bg-slate-900 border-slate-700 hover:border-indigo-400 text-white"
-                subtitle={<span className="text-indigo-400 text-sm sm:text-lg font-extrabold uppercase tracking-widest mb-1 sm:mb-2 text-center">8-Hour Audio</span>}
+                subtitle={<span className="text-indigo-400 text-sm sm:text-lg font-extrabold uppercase tracking-widest mb-1 sm:mb-2 text-center">8-HOUR AUDIO</span>}
                 title="SLEEP SUPPORT"
-                description={<span className="text-slate-400">Engineered audio for deep rest.</span>}
+                description={<span className="text-slate-400">Let your brain rewire while you rest.</span>}
                 centerText={true}
               />
               <Tile
                 onClick={() => setCurrentView('spikes')}
                 className="bg-red-600 border-red-400 hover:border-white text-white items-center text-center justify-center p-8 sm:p-10"
-                subtitle={<span className="text-red-200 text-sm sm:text-lg font-extrabold uppercase tracking-widest mb-1 sm:mb-2 text-center">Emergency</span>}
+                subtitle={<span className="text-red-200 text-sm sm:text-lg font-extrabold uppercase tracking-widest mb-1 sm:mb-2 text-center">EMERGENCY</span>}
                 title="WHEN IT SPIKES"
-                description={<span className="text-red-100">Press immediately for the emergency brake.</span>}
+                description={<span className="text-red-100">If the noise gets louder and the panic sets in… press this.</span>}
                 centerText={true}
               />
             </div>
@@ -270,6 +353,9 @@ function Tile({ title, subtitle, description, className, onClick, centerText }: 
 
 function DetailView({ view, onBack }: { view: Exclude<View, 'home'>; onBack: () => void }) {
   const [isPlayingBrown, setIsPlayingBrown] = useState(false);
+  const [isDisclaimerAccepted, setIsDisclaimerAccepted] = useState(
+    localStorage.getItem('medical_disclaimer_accepted') === 'true'
+  );
   
   useEffect(() => {
     return () => { stopBrownNoise(); };
@@ -296,46 +382,109 @@ function DetailView({ view, onBack }: { view: Exclude<View, 'home'>; onBack: () 
       bgClass = "bg-emerald-50 text-emerald-900";
       gradientClass = "from-emerald-50 via-emerald-50/90 to-transparent";
       buttonClass = "bg-emerald-900 text-emerald-50 hover:bg-emerald-800";
-      content = (
-        <div className="flex flex-col h-full">
-          <div className="flex-1 overflow-y-auto p-6 md:p-10 pb-32">
-            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter uppercase mb-6 leading-none text-emerald-900">
-              Your Daily Reset Protocol
-            </h1>
-            <p className="text-xl md:text-2xl text-emerald-700/80 font-medium leading-relaxed mb-10">
-              Consistency is how we rewire your nervous system. These daily tools lower your baseline stress.
-            </p>
-            
-            <div className="space-y-6 mb-10">
-              <div className="bg-white aspect-video rounded-3xl border-4 border-emerald-100 shadow-sm flex items-center justify-center relative">
-                <Play className="w-16 h-16 text-emerald-300" />
-                <span className="absolute bottom-4 left-6 text-emerald-600 font-extrabold tracking-widest uppercase text-xs">Somatic Release</span>
+      
+      if (!isDisclaimerAccepted) {
+        content = (
+          <div className="flex flex-col h-full">
+            <div className="flex-1 overflow-y-auto p-6 md:p-10 pb-32">
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter uppercase mb-6 leading-none text-emerald-900">
+                SAFETY FIRST
+              </h1>
+              <p className="text-xl md:text-2xl text-emerald-700/80 font-medium leading-relaxed mb-6">
+                Before you start your daily routine, watch this quick safety video.
+              </p>
+              
+              <div className="mb-10">
+                <video 
+                  controls 
+                  playsInline
+                  poster="https://assets.cdn.filesafe.space/WBcpbvnlBFrQ9DnHZPfH/media/6a0b37564ec36477493e2a97.webp" 
+                  className="w-full aspect-video rounded-3xl border-4 border-emerald-100 shadow-sm bg-black object-cover"
+                >
+                  <source src="https://the-silence-institute.b-cdn.net/Final%20-%20Safety%20Intro.mp4" type="video/mp4" />
+                </video>
               </div>
-              <div className="bg-white aspect-video rounded-3xl border-4 border-emerald-100 shadow-sm flex items-center justify-center relative">
-                <Play className="w-16 h-16 text-emerald-300" />
-                <span className="absolute bottom-4 left-6 text-emerald-600 font-extrabold tracking-widest uppercase text-xs">Nervous System Reset</span>
+
+              <button 
+                onClick={() => {
+                  localStorage.setItem('medical_disclaimer_accepted', 'true');
+                  setIsDisclaimerAccepted(true);
+                }}
+                className="w-full bg-emerald-900 text-white font-extrabold text-xl py-6 rounded-[32px] active:scale-[0.98] transition-transform uppercase tracking-widest px-4 leading-snug"
+              >
+                I CONFIRM I'VE WATCHED THIS & I'M CLEARED TO START
+              </button>
+            </div>
+          </div>
+        );
+      } else {
+        content = (
+          <div className="flex flex-col h-full">
+            <div className="flex-1 overflow-y-auto p-6 md:p-10 pb-32">
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter uppercase mb-6 leading-none text-emerald-900">
+                YOUR DAILY RESET
+              </h1>
+              <p className="text-xl md:text-2xl text-emerald-700/80 font-medium leading-relaxed mb-6">
+                Do these three things. In this order. Every day. That's how your nervous system learns to let go.
+              </p>
+              
+              <div className="space-y-6 mb-10">
+                <div>
+                  <span className="text-emerald-800 font-bold tracking-widest uppercase text-[10px] sm:text-xs mb-2 block">1. THE SOMATIC RELEASE (5 MIN) - Release the physical tension amplifying the sound.</span>
+                  <video 
+                    controls 
+                    playsInline
+                    poster="https://assets.cdn.filesafe.space/WBcpbvnlBFrQ9DnHZPfH/media/6a0b37568d08689eb2c8b9d7.webp" 
+                    className="w-full aspect-video rounded-3xl border-4 border-emerald-100 shadow-sm bg-black object-cover"
+                  >
+                    <source src="https://the-silence-institute.b-cdn.net/Final%20-%20Somatic%20Release-1.mp4" type="video/mp4" />
+                  </video>
+                </div>
+
+                <div>
+                  <span className="text-emerald-800 font-bold tracking-widest uppercase text-[10px] sm:text-xs mb-2 block">2. THE NERVOUS SYSTEM RESET (5 MIN) - Teach your brain the ringing isn't a threat.</span>
+                  <video 
+                    controls 
+                    playsInline
+                    poster="https://assets.cdn.filesafe.space/WBcpbvnlBFrQ9DnHZPfH/media/6a0b3756c474827cc404f487.webp" 
+                    className="w-full aspect-video rounded-3xl border-4 border-emerald-100 shadow-sm bg-black object-cover"
+                  >
+                    <source src="https://the-silence-institute.b-cdn.net/Final%20-%20Vagus%20Reset.mp4" type="video/mp4" />
+                  </video>
+                </div>
+              </div>
+
+              <span className="text-emerald-800 font-bold tracking-widest uppercase text-xs mb-2 block">3. MY CUSTOM SILENCE AUDIO</span>
+              <button 
+                onClick={handleBrownPlayPause}
+                className="w-full bg-emerald-900 text-white p-6 sm:p-8 rounded-[32px] border-4 border-emerald-700 shadow-lg flex flex-col items-center gap-6 active:scale-[0.98] transition-transform"
+              >
+                <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center shrink-0 border-4 border-emerald-700 ${isPlayingBrown ? 'bg-emerald-500 animate-[pulse_2s_ease-in-out_infinite]' : 'bg-emerald-800'}`}>
+                  {isPlayingBrown ? (
+                      <Square className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-white" />
+                  ) : (
+                      <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-white ml-2" />
+                  )}
+                </div>
+                <div className="text-center">
+                  <p className="font-extrabold text-xl sm:text-2xl mb-1 uppercase tracking-widest">MY CUSTOM SILENCE AUDIO</p>
+                  <p className="text-emerald-300 text-base sm:text-lg font-medium">{isPlayingBrown ? 'Playing...' : 'Press to play your personalized audio.'}</p>
+                </div>
+              </button>
+              <div className="mt-4 flex flex-col gap-3">
+                <p className="text-center text-emerald-800 text-sm font-medium">
+                  <strong>What this does:</strong> Every time you listen, your auditory cortex learns to turn the volume down.
+                </p>
+                <p className="text-center text-emerald-800 text-sm font-medium">
+                  ⚠️ No sound? If you're on iPhone, make sure the mute switch isn't on.
+                  <br className="my-2" />
+                  Note: You can listen to this audio as often as you want throughout the day. Just close your eyes and let it work. We recommend at least one full hour daily for maximum neuroplastic effect.
+                </p>
               </div>
             </div>
-
-            <button 
-              onClick={handleBrownPlayPause}
-              className="w-full bg-emerald-900 text-white p-6 sm:p-8 rounded-[32px] border-4 border-emerald-700 shadow-lg flex flex-col items-center gap-6 active:scale-[0.98] transition-transform"
-            >
-              <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center shrink-0 border-4 border-emerald-700 ${isPlayingBrown ? 'bg-emerald-500 animate-[pulse_2s_ease-in-out_infinite]' : 'bg-emerald-800'}`}>
-                {isPlayingBrown ? (
-                    <Square className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-white" />
-                ) : (
-                    <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-white ml-2" />
-                )}
-              </div>
-              <div className="text-center">
-                <p className="font-extrabold text-xl sm:text-2xl mb-1 uppercase tracking-widest">My Custom Silence Audio</p>
-                <p className="text-emerald-300 text-base sm:text-lg font-medium">{isPlayingBrown ? 'Playing...' : 'Press to play customized audio'}</p>
-              </div>
-            </button>
           </div>
-        </div>
-      );
+        );
+      }
       break;
 
     case 'spikes':
@@ -346,17 +495,18 @@ function DetailView({ view, onBack }: { view: Exclude<View, 'home'>; onBack: () 
         <div className="flex flex-col h-full">
           <div className="flex-1 overflow-y-auto p-6 md:p-10 pb-32 flex flex-col justify-center">
             <h1 className="text-5xl md:text-6xl font-extrabold tracking-tighter uppercase mb-6 leading-none text-white mb-8">
-              Emergency Protocol:<br />When It Spikes
+              WHEN IT SPIKES
             </h1>
             <p className="text-2xl md:text-3xl text-red-100 font-medium leading-relaxed mb-12 border-l-4 border-white/50 pl-6">
-              Spikes happen. When the noise suddenly gets louder, your brain's natural reaction is panic. This is your emergency brake. Stop what you are doing, sit down, and press play immediately.
+              The sound just got louder. Your heart's racing. Your brain thinks you're in danger. You're not. This is your emergency brake. Stop what you're doing. Sit down. Press play.
             </p>
             
-            <button className="w-full aspect-square md:aspect-auto md:h-80 bg-red-700 rounded-[40px] border-4 border-red-500 flex flex-col items-center justify-center active:scale-[0.98] transition-transform shadow-2xl relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-b from-red-600 to-red-800" />
-              <Play className="w-32 h-32 text-white relative z-10 mb-4 ml-4" />
-              <span className="text-white relative z-10 font-extrabold tracking-widest uppercase text-xl">Press Play Now</span>
-            </button>
+            <NativeAudioPlayer 
+              src="https://the-silence-institute.b-cdn.net/Emergency%20Spike%20Protocol.MP3" 
+              title="Emergency Spike Protocol" 
+              album="Emergency Audio" 
+              isSpike={true} 
+            />
           </div>
         </div>
       );
@@ -370,10 +520,10 @@ function DetailView({ view, onBack }: { view: Exclude<View, 'home'>; onBack: () 
         <div className="flex flex-col h-full">
           <div className="flex-1 overflow-y-auto p-6 md:p-10 pb-32 flex flex-col">
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter uppercase mb-6 leading-none text-white">
-              Night Support:<br />Deep Rest
+              NIGHT SUPPORT:<br />DEEP REST
             </h1>
             <p className="text-xl md:text-2xl text-slate-400 font-medium leading-relaxed mb-auto">
-              Sleep is when your body heals. This audio track is engineered to mask the intrusion and signal to your brain that it is safe to sleep. Set your volume and let it run all night.
+              Your brain does its deepest rewiring while you sleep. This audio masks the intrusion. And tells your nervous system it's safe to let go. Set your volume. Let it run all night.
             </p>
             
             <div className="mt-12 bg-slate-800 p-8 rounded-[40px] border-4 border-slate-700 flex flex-col items-center text-center shadow-lg">
@@ -381,11 +531,14 @@ function DetailView({ view, onBack }: { view: Exclude<View, 'home'>; onBack: () 
                 <Headphones className="w-12 h-12 text-indigo-400" />
               </div>
               <h3 className="text-2xl font-extrabold text-white mb-2 uppercase tracking-widest">8-Hour Silent Sleep Audio</h3>
-              <p className="text-indigo-300/80 text-lg mb-8 font-medium">Continuous playback</p>
+              <p className="text-indigo-300/80 text-lg mb-8 font-medium">Continuous playback. Set it and forget it.</p>
               
-              <button className="w-full bg-indigo-600 text-white font-extrabold text-2xl py-6 rounded-[32px] active:scale-[0.98] transition-transform shadow-[0_0_40px_rgba(79,70,229,0.2)] uppercase tracking-widest">
-                Start Audio
-              </button>
+              <NativeAudioPlayer 
+                src="https://the-silence-institute.b-cdn.net/Silent%20Sleep%20Audio%20(8h).MP3" 
+                title="Silent Sleep Audio (8h)" 
+                album="Night Support" 
+                loop={true} 
+              />
             </div>
           </div>
         </div>
@@ -410,7 +563,7 @@ function DetailView({ view, onBack }: { view: Exclude<View, 'home'>; onBack: () 
           className={`w-full font-extrabold text-xl py-6 rounded-[32px] flex items-center justify-center gap-4 active:scale-[0.98] transition-transform shadow-xl uppercase tracking-widest border-4 border-transparent ${buttonClass}`}
         >
           <ArrowLeft className="w-8 h-8" />
-          <span>Zurück zur Übersicht</span>
+          <span>BACK TO OVERVIEW</span>
         </button>
       </div>
     </motion.div>
@@ -470,38 +623,55 @@ function OnboardingView({ onComplete }: { onComplete: () => void }) {
     onComplete();
   };
   
+  const openPdf = () => {
+    // Open PDF in a new tab without blocking execution
+    window.open("https://assets.cdn.filesafe.space/WBcpbvnlBFrQ9DnHZPfH/media/6a0b338860b3f1e04a9d3d3e.pdf", "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="flex flex-col h-[100dvh] w-full max-w-lg mx-auto bg-zinc-950 text-white overflow-y-auto">
       <AnimatePresence mode="wait">
         {step === 1 && (
           <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col h-full p-6 md:p-10 pb-16">
-            <span className="text-zinc-500 font-extrabold uppercase tracking-widest text-sm mb-4 block mt-8">Schritt 1 von 3</span>
+            <span className="text-zinc-500 font-extrabold uppercase tracking-widest text-sm mb-4 block mt-8">Step 1 of 3</span>
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter uppercase mb-6 leading-none">
-              Wie dieser Prozess funktioniert
+              HERE'S HOW THIS WORKS
             </h1>
-            <p className="text-xl text-zinc-400 font-medium leading-relaxed mb-10">
-              Bitte sehen Sie sich dieses Video vollständig an, bevor Sie fortfahren.
+            <p className="text-xl text-zinc-400 font-medium leading-relaxed mb-6">
+              Watch this short video first. It'll explain everything you need to know before you start.
             </p>
-            <div className="bg-black aspect-video rounded-3xl border-4 border-zinc-800 flex items-center justify-center mb-10 shrink-0">
-              <Play className="w-16 h-16 text-zinc-600" />
+            
+            <div className="space-y-6 mb-10">
+              <div>
+                <span className="text-zinc-500 font-bold tracking-widest uppercase text-xs mb-2 block">Start Here</span>
+                <video 
+                  controls 
+                  playsInline
+                  poster="https://assets.cdn.filesafe.space/WBcpbvnlBFrQ9DnHZPfH/media/6a0b3a792e98e28fa1a13b32.webp" 
+                  className="w-full aspect-video rounded-3xl border-4 border-zinc-800 bg-black object-cover"
+                >
+                  <source src="https://the-silence-institute.b-cdn.net/TSI%20-%20Start%20Here.mp4" type="video/mp4" />
+                </video>
+              </div>
             </div>
+
             <button onClick={() => setStep(2)} className="mt-auto w-full bg-white text-zinc-900 font-extrabold text-xl py-6 rounded-[32px] active:scale-[0.98] transition-transform uppercase tracking-widest">
-              Weiter zu Schritt 2: Mein Audio einstellen
+              NEXT: SET UP MY AUDIO
             </button>
           </motion.div>
         )}
         
         {step === 2 && (
           <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col h-full p-6 md:p-10 pb-16">
-            <span className="text-zinc-500 font-extrabold uppercase tracking-widest text-sm mb-4 block mt-8">Schritt 2 von 3</span>
+            <span className="text-zinc-500 font-extrabold uppercase tracking-widest text-sm mb-4 block mt-8">Step 2 of 3</span>
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter uppercase mb-6 leading-none">
-              Finden Sie Ihre Frequenz
+              FIND YOUR FREQUENCY
             </h1>
-            <p className="text-xl text-zinc-400 font-medium leading-relaxed mb-10">
-              Verwenden Sie den Schieberegler, um den Ton an Ihren Tinnitus anzupassen. Suchen Sie die Frequenz, die ihm am nächsten kommt.
+            <p className="text-xl text-zinc-400 font-medium leading-relaxed mb-6">
+              Use the slider below to match the pitch of your tinnitus. Find the tone that sounds closest to what you hear.
             </p>
             
-            <div className="bg-zinc-900 p-8 rounded-[40px] border-4 border-zinc-800 mb-10 mt-auto">
+            <div className="bg-zinc-900 p-8 rounded-[40px] border-4 border-zinc-800 mb-6 mt-auto">
               <div className="flex justify-between items-center mb-10">
                 <span className="text-3xl font-mono font-bold text-white">{frequency} Hz</span>
                 <button onClick={handlePlayPause} className={`w-20 h-20 rounded-full flex items-center justify-center border-4 border-transparent transition-colors ${isPlayingSine ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}>
@@ -519,16 +689,20 @@ function OnboardingView({ onComplete }: { onComplete: () => void }) {
                 className="w-full h-4 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-white"
               />
             </div>
+
+            <p className="mt-0 mb-6 text-center text-zinc-500 text-sm font-medium px-4">
+              ⚠️ No sound? If you're on an iPhone, make sure the mute switch on the side isn't on.
+            </p>
             
             {!isSaved ? (
               <button onClick={handleSave} className="w-full bg-indigo-600 text-white font-extrabold text-xl py-6 rounded-[32px] active:scale-[0.98] transition-transform uppercase tracking-widest flex items-center justify-center gap-3">
                 <Save className="w-6 h-6" />
-                Das ist meine Frequenz speichern
+                SAVE MY FREQUENCY
               </button>
             ) : (
               <button onClick={() => { stopSineWave(); setStep(3); }} className="w-full bg-emerald-500 text-white font-extrabold text-xl py-6 rounded-[32px] active:scale-[0.98] transition-transform uppercase tracking-widest flex items-center justify-center gap-3">
                 <CheckCircle className="w-6 h-6" />
-                Weiter zu Schritt 3
+                CONTINUE TO STEP 3
               </button>
             )}
           </motion.div>
@@ -536,15 +710,18 @@ function OnboardingView({ onComplete }: { onComplete: () => void }) {
         
         {step === 3 && (
           <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col h-full p-6 md:p-10 pb-16">
-            <span className="text-zinc-500 font-extrabold uppercase tracking-widest text-sm mb-4 block mt-8">Schritt 3 von 3</span>
+            <span className="text-zinc-500 font-extrabold uppercase tracking-widest text-sm mb-4 block mt-8">Step 3 of 3</span>
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter uppercase mb-6 leading-none">
-              Messen Sie Ihren Erfolg
+              TRACK YOUR PROGRESS
             </h1>
-            <p className="text-xl text-zinc-400 font-medium leading-relaxed mb-10">
-              Laden Sie sich den Progress Tracker herunter, um Ihre Fortschritte wöchentlich zu messen.
+            <p className="text-xl text-zinc-400 font-medium leading-relaxed mb-6">
+              Download the tracker below. Check off each day you complete the protocol.
+            </p>
+            <p className="text-lg text-zinc-500 font-medium leading-relaxed mb-10 border-l-2 border-zinc-700 pl-4">
+              <strong>Why it matters:</strong> This isn't just a checklist. It's proof you're showing up for yourself.
             </p>
             
-            <button className="w-full bg-zinc-900 text-white p-8 rounded-[40px] active:scale-[0.98] transition-transform flex flex-col items-center justify-center text-center gap-6 mb-10 border-4 border-zinc-800 mt-auto">
+            <button onClick={openPdf} className="w-full bg-zinc-900 text-white p-8 rounded-[40px] active:scale-[0.98] transition-transform flex flex-col items-center justify-center text-center gap-6 mb-10 border-4 border-zinc-800 mt-auto">
               <div className="bg-zinc-800 w-24 h-24 rounded-full flex items-center justify-center">
                 <Download className="w-12 h-12 text-zinc-400" />
               </div>
@@ -555,7 +732,7 @@ function OnboardingView({ onComplete }: { onComplete: () => void }) {
             </button>
             
             <button onClick={finalizeOnboarding} className="w-full bg-white text-zinc-900 font-extrabold text-xl py-6 rounded-[32px] active:scale-[0.98] transition-transform uppercase tracking-widest">
-              Onboarding abschließen & App starten
+              FINISH SETUP & START
             </button>
           </motion.div>
         )}
