@@ -181,28 +181,32 @@ function NativeAudioPlayer({ src, title, album, isSpike, loop }: { src: string, 
         onPause={() => setIsPlaying(false)} 
         onEnded={() => setIsPlaying(false)} 
         loop={loop}
+        preload="metadata"
+        playsInline
       />
       
       {isSpike ? (
-        <button onClick={togglePlay} className="w-full aspect-square md:aspect-auto md:h-80 bg-red-700 rounded-[40px] border-4 border-red-500 flex flex-col items-center justify-center active:scale-[0.98] transition-transform shadow-2xl relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-b from-red-600 to-red-800" />
-          {isPlaying ? (
-            <Square className="w-32 h-32 text-white relative z-10 mb-4" fill="currentColor" />
-          ) : (
-            <Play className="w-32 h-32 text-white relative z-10 mb-4 ml-4" fill="currentColor" />
-          )}
-          <span className="text-white relative z-10 font-extrabold tracking-widest uppercase text-xl">
-             {isPlaying ? 'STOP AUDIO' : 'PLAY NOW'}
-          </span>
-        </button>
+        <div className="flex flex-col items-center w-full">
+          <div onClick={togglePlay} className="orb-button orb-emergency mb-6">
+            {isPlaying ? (
+              <Square className="w-12 h-12 text-white" fill="currentColor" />
+            ) : (
+              <Play className="w-12 h-12 text-white ml-2" fill="currentColor" />
+            )}
+          </div>
+          <p className="text-red-200/60 text-sm font-medium">Tap the sphere to play or pause.</p>
+        </div>
       ) : (
-        <button onClick={togglePlay} className="w-full bg-indigo-600 text-white font-extrabold text-2xl py-6 rounded-[32px] active:scale-[0.98] transition-transform shadow-[0_0_40px_rgba(79,70,229,0.2)] uppercase tracking-widest flex items-center justify-center gap-4">
-          {isPlaying ? (
-            <><Square className="w-8 h-8" fill="currentColor" /> STOP AUDIO</>
-          ) : (
-            <><Play className="w-8 h-8" fill="currentColor" /> START AUDIO</>
-          )}
-        </button>
+        <div className="flex flex-col items-center w-full">
+          <div onClick={togglePlay} className="orb-button orb-sleep mb-6">
+            {isPlaying ? (
+              <Square className="w-12 h-12 text-white" fill="currentColor" />
+            ) : (
+              <Play className="w-12 h-12 text-white ml-2" fill="currentColor" />
+            )}
+          </div>
+          <p className="text-indigo-300/60 text-sm font-medium">Tap the sphere to play or pause.</p>
+        </div>
       )}
     </>
   );
