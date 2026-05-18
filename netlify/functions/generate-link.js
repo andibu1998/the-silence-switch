@@ -11,7 +11,7 @@ exports.handler = async (event, context) => {
 
   try {
     // Parse the payload from GoHighLevel
-    const { email, contact_id } = JSON.parse(event.body);
+    const { email, contact_id, full_name } = JSON.parse(event.body);
 
     if (!email || !contact_id) {
       return { 
@@ -33,7 +33,7 @@ exports.handler = async (event, context) => {
     }
 
     // Generate JWT with no expiration date (infinitely valid)
-    const token = jwt.sign({ email, contact_id }, jwtSecret);
+    const token = jwt.sign({ email, contact_id, full_name }, jwtSecret);
 
     // Construct the Magic Link
     const magicLink = `${appUrl}/?token=${token}`;

@@ -183,6 +183,8 @@ function NativeAudioPlayer({ src, title, album, isSpike, loop }: { src: string, 
         loop={loop}
         preload="metadata"
         playsInline
+        controls
+        className="absolute opacity-0 pointer-events-none w-0 h-0 -z-10"
       />
       
       {isSpike ? (
@@ -221,6 +223,7 @@ export default function App() {
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [isOnboardingCompleted, setIsOnboardingCompleted] = useState<boolean>(false);
   const [currentView, setCurrentView] = useState<View>('home');
+  const [userName, setUserName] = useState<string>('User');
 
   useEffect(() => {
     // Check for token in URL using URLSearchParams
@@ -232,8 +235,14 @@ export default function App() {
       localStorage.setItem('silence_switch_token', tokenFromUrl);
       
       const payload = parseJwt(tokenFromUrl);
-      if (payload && payload.contact_id) {
-        localStorage.setItem('silence_switch_contact_id', payload.contact_id);
+      if (payload) {
+        if (payload.contact_id) {
+          localStorage.setItem('silence_switch_contact_id', payload.contact_id);
+        }
+        if (payload.full_name) {
+          localStorage.setItem('silence_switch_user_name', payload.full_name);
+          setUserName(payload.full_name);
+        }
       }
       
       // Clean up the URL by replacing history state to root, hiding token
@@ -244,6 +253,10 @@ export default function App() {
       const existingToken = localStorage.getItem('silence_switch_token');
       if (existingToken) {
         setIsAuthenticated(true);
+      }
+      const existingName = localStorage.getItem('silence_switch_user_name');
+      if (existingName) {
+        setUserName(existingName);
       }
     }
     
@@ -290,7 +303,7 @@ export default function App() {
                 <h1 className="text-xl sm:text-2xl font-extrabold tracking-tighter text-zinc-900 uppercase">The Silence Switch</h1>
                 <div className="flex items-center gap-2 mt-1">
                   <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500 animate-pulse"></div>
-                  <span className="text-[10px] sm:text-xs font-bold text-zinc-500 tracking-widest uppercase">PORTAL ACTIVE</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-zinc-500 tracking-widest uppercase">{userName}</span>
                 </div>
               </div>
             </div>
